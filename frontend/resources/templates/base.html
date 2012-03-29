@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		{% load static from staticfiles %}
+		<title>Scrummage - {% block title %}{% endblock %}</title>
+		<link media="all" type="text/css" href="{% static 'css/base.css' %}" rel="stylesheet"/>
+		{% block extrahead %}{% endblock %}
+	</head>
+	<body>
+		<div id='header'>
+			<div class="container">
+				<div id='logo'><img src="{% static 'images/logo.png' %}" /></div>
+				<div id='global-menu'>
+					<ul>
+						<li>explore</li>
+						<li>help</li>
+					</ul>
+				</div>
+				<div id="search-box">
+					<form id='global-search' name='global-search' method='post' action=''>
+						<input type='text' name='search' id='search' value='' />
+						<img src="{% static 'images/search.jpeg' %}" />
+					</form>				
+				</div>
+				<div id='user-login'>				
+					{% if user.is_authenticated %}
+						Welcome <a href="/employee/details/{{user.id}}" title="my profile" style="text-decoration:underline">{{user.first_name}}</a> | 
+		                <span class='userlinks'><a href="/user/changepassword/" title="change password">Change Password</a> | 
+		                            <a href="/user/logout/" title="logout">Logout</a></span>
+					{% endif %}
+				</div>
+				<div class='clear'></div>
+			</div>
+		</div>
+		<div id="content">
+			{% block content %}{% endblock %}
+		</div>
+		<div id="footer">&copy; 2012 Scrummage. All rights reserved.
+		</div>
+	</body>
+</html>

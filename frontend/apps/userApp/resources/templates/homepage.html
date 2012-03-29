@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static from staticfiles %}
+{% block title %}Home{% endblock %}
+{% block extrahead %}
+	<link media="all" type="text/css" href="{% static 'css/homepage.css' %}" rel="stylesheet"/>
+{% endblock %}
+
+
+{% block content %}
+<div id='homepage'>
+	<div id='manifesto'>
+		<p>
+			A feature rich, user friendly and 100% free tool to manage all your Scrum projects.
+			<span>(team management, product backlog, sprint management, scrumboard, stats & graphs, wiki....<a href='features'>more</a>)</span>
+		</p>
+		<span>Interact.</span>
+		<span>Collobrate.</span>
+		<span>Develop.</span>
+		<span>Adapt.</span>	
+	</div>
+
+	<div class='container'>
+		<div class='form register'>
+			<div class='widget-label'>Create your free account</div>
+			<form name='register' id='register-form' method='POST' action="{% url register %}">
+				{% csrf_token %}
+				<label for='email'>Email</label><input type='text' value='' name='email' id='register-email'/>
+				<label for='password'>Password</label><input type='password' value='' name='password' id='password'/>
+				<label for='repassword'>Re-type Password</label><input type='password' value='' name='repassword' id='repassword'/>
+				<button id='submit-register' value='Create my account'><a href="register">Create my account</a></button>				
+			</form>
+			<div class='clear'></div>
+		</div>
+		<div class='separator'>&nbsp;</div>
+		<div class='form login'>
+			<div class='widget-label'>Login</div>
+			<form name='login' id='login-form' method='POST' action="{% url login %}">
+				{% csrf_token %}
+				<label for='email'>Email</label><input type='text' value='' name='email' id='login-email'/>
+				<label for='password'>Password (<a href='forgot-password'>Forgot password?</a>)</label>
+				<input type='password' value='' name='password' id='password'/>
+				<button id='submit-login' value='Login'><a href="register">Login</a></button>				
+			</form>
+			<div class='clear'></div>
+		</div>
+		<div class='clear'></div>
+	</div>
+</div>
+{% endblock %}

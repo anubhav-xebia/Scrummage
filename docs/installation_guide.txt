@@ -1,0 +1,454 @@
+Set up 1:
+---------
+
+Django virtualenv Apache2 mod_wsgi
+
+    Steps taken to deploy a Django web application (osqa.net) in a virtualenv, using apache2, and mod_wsgi.
+
+Why use wsgi and virtualenv?
+
+        I also host pylons applications using mod_wsgi and apache2 and mod_python is incompatible.
+        mod_wsgi is faster.
+        I don't want my public site-packages library conflicting with other applications.
+
+Contents
+
+    Install virtualenv
+    Create a virtualenv
+    Install Django
+    Install and configure the Django web application
+    Configure Apache2 VirtualHost
+    Configure mod_wsgi
+    Enable the Virtual Host and reload Apache2
+
+Install virtualenv
+
+    Install Setup tools:
+
+    $ sudo apt-get install python-setuptools memcached
+
+    Install virtualenv:
+
+    $ sudo easy_install virtualenv
+
+Create a virtualenv
+
+    Move to the directory where you want to create the virtualenv:
+
+    $ cd /www/lostquery.com
+
+    Create python environment:
+
+    $ virtualenv --no-site-packages virtpy
+
+Install Django
+
+    Activate the virtualenv:
+
+    $ source virtpy/bin/activate
+
+    The shell should have changed to (virtpy) $ . Run this command to install django to the virtualenv:
+
+    $ easy_install django
+
+    Install any dependencies you will need to the virtualenv:
+
+    $ easy_install MySQL-python markdown html5lib modwsgideploy python-openid South python-memcached
+
+Install and configure the Django web application
+
+    Get the sourcecode:
+
+    $ svn co http://svn.osqa.net/svnroot/osqa/trunk
+
+    Configure the application:
+
+    $ cd trunk
+
+    $ cp settings_local.py.dist settings_local.py
+
+    $ vi settings_local.py
+
+    You must tell the Django's application what database to use. Also configure memcached:
+
+    # database settings
+    DATABASE_NAME     =  'databasename' # Or path to database file if using sqlite3.
+    DATABASE_USER     =  'username'     # Not used with sqlite3.
+    DATABASE_PASSWORD =  'p@ssw0rd'     # Not used with sqlite3.
+    DATABASE_ENGINE   =  'mysql'        #mysql, etc
+    DATABASE_HOST     =  'localhost'
+    DATABASE_PORT     =  ''
+
+    # memcached settings (osqa is slow as dirt without this)
+    CACHE_BACKEND = 'memcached://127.0.0.1:11211/'
+
+    Give apache access to a few directories, /trunk/log and /trunk/forum/upfiles:
+
+    $ chmod 777 log
+    $ chmod 777 forum/upfiles
+
+    Create the database (example syntax to create a mySQL database).
+
+    Let the django application build the tables in the new database:
+
+    $ python manage.py syncdb --all
+    $ python manage.py migrate forum --fake
+
+Configure Apache2 VirtualHost
+
+    Turn on mod_rewrite:
+
+    $ a2enmod rewrite
+
+    Create a sites-available vhost apache2 file:
+
+    $ sudo vi /etc/apache2/sites-available/007-lostquery
+
+    Setup the host file:
+
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+    20
+    21
+    22
+    23
+    24
+    25
+    26
+    27
+    28
+    29
+    30
+    31
+
+    	
+
+     #lostquery.com
+
+     #Djangos embeded mod_wsgi
+     <VirtualHost *:80>
+          ServerName lostquery.com
+          ServerAlias www.lostquery.com
+          ServerAdmin admin@admin.com
+
+          # ReWrite URL to WWW
+          RewriteEngine On
+          RewriteCond %{HTTP_HOST} ^www.lostquery.com
+          RewriteRule (.*) http://lostquery.com$1 [R=301,L]
+
+          # Log Files
+          ErrorLog /var/log/apache2/error-lostquery.log
+          CustomLog /var/log/apache2/access-lostquery.log combined
+
+          # prevent django from seting static files
+          DocumentRoot /www/lostquery.com/trunk/forum
+          Alias /m/ /www/lostquery.com/trunk/forum/skins/
+          Alias /upfiles/ /www/lostquery.com/trunk/forum/upfiles/
+          <Directory /www/lostquery.com/trunk/forum/skins>
+              Order allow,deny
+              Allow from all
+          </Directory>
+
+          # Setup mod_wsgi
+          WSGIDaemonProcess lostquery display-name=lostquery user=www-data processes=2 threads=15
+          WSGIScriptAlias / /www/lostquery.com/mod_wsgi/dispatch.wsgi
+
+     </VirtualHost>
+
+Configure mod_wsgi
+
+    Create the egg-cache directory:
+
+    $ mkdir /www/lostquery.com/mod_wsgi
+
+    $ mkdir /www/lostquery.com/mod_wsgi/egg-cache
+
+    Create the wsgi dispatch file:
+
+    $ vi /www/lostquery.com/mod_wsgi/dispatch.wsgi
+
+    Setup the wsgi dispatch file:
+
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+
+    	
+
+    import os
+    import sys
+    sys.stdout = sys.stderr
+    # Add the virtual Python environment site-packages directory to the path
+    import site
+    site.addsitedir('/www/lostquery.com/virtpy/lib/python2.6/site-packages')
+
+
+    # Avoid ``[Errno 13] Permission denied: '/var/www/.python-eggs'`` messages
+    import os
+    os.environ['PYTHON_EGG_CACHE'] = '/www/lostquery.com/mod_wsgi/egg-cache'
+
+    #If your project is not on your PYTHONPATH by default you can add the following
+    sys.path.append('/www/lostquery.com/trunk')
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+
+
+    import django.core.handlers.wsgi
+    application = django.core.handlers.wsgi.WSGIHandler()
+
+Enable the Virtual Host and reload Apache2
+
+    Reset apache2 so that it reads in the new config files:
+
+    $ a2ensite lostquery
+
+    $ sudo service apache2 reload
+
+
+----------------------------------------------------------------------------------------------------------------------------
+Step up 2:
+----------
+Python virtualenv quickstart with Django
+
+One of the solutions to the ghetto of Python package management is to use a sand-boxed Python install like virtualenv. This is the very same technique we use at Smarkets to simultaneously run Pylons and Django alongside each other on a single server.
+
+This post is briefly about how to get up and running in a few minutes using virtualenv and Django.
+Install virtualenv
+
+Installing virtualenv is easy on a Linux or Mac system, but the instructions that follow are Linux (Ubuntu, actually) specific. First you’ll need setuptools:
+
+sudo apt-get install python-setuptools
+
+Then we can easy_install virtualenv:
+
+sudo easy_install virtualenv
+
+We need to use sudo here because it has to install to a global location. Don’t worry, this is the last time we’ll need to do something as root.
+Create your virtualenv
+
+cd to wherever it is you keep your projects (for me, in ~/src), and run:
+
+virtualenv --no-site-packages venv
+
+In this instance I’ve chosen venv as the name for my virtual environment. The —no-site-packages command tells virtualenv not to symlink the global site packages into my local environment, just take the Python standard library. This is important, because it helps us avoid the dependency difficulties mentioned above.
+
+At this stage you might want to add venv to your list of ignored files, as you don’t want it to be committed to source control:
+
+echo "venv" >> .gitignore
+
+Installing Django
+
+Now, the trick with virtualenv is that it creates its own Python and easy_install binaries, which means you can install/run things specifically in your environment. Let’s install Django:
+
+./venv/bin/easy_install django
+
+And it’s done. easy. You might also want to install the MySQL bindings and IPython for ease of use:
+
+./venv/bin/easy_install ipython python-mysql
+
+To start a new Django project, you’ll note that a django-admin.py file will have been installed for you in the environment:
+
+./venv/bin/django-admin.py startproject myapp
+
+Obviously you can skip this step if you have an existing Django project.
+Running Django
+
+Now the last step, which is probably obvious by now, is to run Django’s runserver with the virtual Python binary:
+
+cd myapp
+../venv/bin/python manage.py runserver 0.0.0.0:8000
+
+And you’re away!
+Closing
+
+Just make sure whenever you need to add another package that you install it in the virtualenv, and not in the global packages directory. If you want to deploy using virtualenv, here are some instructions for using mod_wsgi with virtualenvs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PostgreSQL
+----------
+
+PostgreSQL with PHP in Ubuntu: Step-by-Step How To!
+ 
+ 
+ 
+ 
+ 
+ 
+1 Votes
+
+    This document is for latest version of PostgreSQL: 8.4, but it should work in any newer versions, as long as you change the commands appropriately, replacing the version mentioned with correct version :) 
+
+Installation
+
+Install PostgreSQL:
+
+sudo apt-get install postgresql
+
+Install GUI Administration application:
+
+sudo apt-get install pgadmin3
+
+Install PHP based Web Administration site (like phpMyAdmin for MySQL database):
+
+sudo apt-get install phppgadmin
+
+    I found this helpful, because it installed all dependant packages required to access postGRE database from PHP ;) 
+
+Configuration
+
+Configure so that you can access via localhost:
+
+gksudo gedit /etc/postgresql/8.4/main/postgresql.conf 
+
+It witll open the file for editing, Add following line at the end of the file:
+
+listen_addresses = 'localhost'
+
+Save and close the file. Open another file for editing:
+
+gksuso gedit /etc/postgresql/8.4/main/pg_hba.conf
+
+Replace “local all all ident sameuser” with:
+
+local   all         all                               md5
+
+Change Password for root user
+
+In PostGRE, root user is “postgres” which by default, does not have any password. Enter following line in terminal to set a password for it:
+
+sudo -u postgres psql template1
+ALTER USER postgres with encrypted password 'your_password';
+\q
+
+Create a new User & a new Database
+
+sudo -u postgres createuser -d -R -P new_username
+sudo -u postgres createdb -O new_username new_database_name
+
+This will create a new user, with username “new_username” and create a new database “new_database_name” and set “new_username” it’s owner.
+Configure phpPgAdmin
+
+I assume you already installed phpPgAdmin by:
+
+sudo apt-get install phppgadmin
+
+Then, configure Apache:
+
+gksudo gedit /etc/apache2/apache2.conf
+
+Add following line at the end of the file:
+
+Include /etc/phppgadmin/apache.conf
+
+All done! Restart to reflect changes…
+
+sudo /etc/init.d/apache2 restart
+sudo /etc/init.d/postgresql-8.4 restart
+
+Access phpPgAdmin
+
+type http://localhost/phppgadmin in your browser & log in by the username you just created (new_username)
+Use GUI Administration application
+
+Run following command in terminal:
+
+pgadmin3
+
+Access from Terminal:
+
+psql
+
+
+
+
+createuser scrum
+Shall the new role be a superuser? (y/n) n
+Shall the new role be allowed to create databases? (y/n) n
+Shall the new role be allowed to create more new roles? (y/n) n
+anubhava@xebia-anubhav:/var/www/sandbox/project/Scrummage
+> createdb -O scrum scrummage
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Django application structure
+----------------------------
+venv/bin/django-admin.py startproject app
+mv app frontend
+
+venv/bin/django-admin.py startproject app
+mv app api
+
+
+because django will create app/app
+-----------------------------^ and this app can be rename to anything ( in our case frontend and api )
+the other 'app' will contain our applications ( eg: user, issue, etc etc )
+
+
+open settings.py and changed the database engine
+got error so ran the following command:
+easy_install psycopg2 ( got error )
+sudo apt-get build-dep python-psycopg2
+easy_install psycopg2 ( worked )
+
+
+If {{ STATIC_URL }} isn't working in your template, you're probably not using RequestContext when rendering the template.
+
+{{STATIC_URL}} did not work for internal pages so used (%static%} tag
+
+
+
+Error: `curl-config' not found -- please install the libcurl development files
+installed : sudo apt-get install librtmp-dev libcurl4-gnutls-dev
+
+install : human_curl
+
