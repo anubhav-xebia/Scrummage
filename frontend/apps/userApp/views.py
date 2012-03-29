@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from django.core.context_processors import csrf
+#from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from lib.Request import APIRequest

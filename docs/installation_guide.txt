@@ -452,3 +452,8 @@ installed : sudo apt-get install librtmp-dev libcurl4-gnutls-dev
 
 install : human_curl
 
+
+human_curl did not work because of weird Django thread error "signal only works in main thread"
+
+so now using 'requests' module
+

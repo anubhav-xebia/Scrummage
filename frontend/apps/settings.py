@@ -175,11 +175,8 @@ LOGGING = {
 #                      API URLs STARTS                                      #
 #############################################################################
 
-api_url = 'http://www.google.com/'
-api_url_register = api_url
-#api_url = 'http://localhost:7001/'
-#api_url_register = api_url+'register'
-
+api_url = 'http://192.168.1.93:8001/'
+api_url_register = api_url+'register'
 
 
 

@@ -1,15 +1,16 @@
 import json
-import urllib2 as api
+import urllib, urllib2
 
 class APIRequest:
 	"""
 	Class to generate JSON request for the api
 	"""
+	REQUEST_HEADER = {'Content-Type':'application/json;charset=UTF-8'}
+
 	def __init__(self, url, data):
 		"""
 		Initialize the dict
 		"""
-		REQUEST_HEADER = 'Content-Type', 'application/json;charset=UTF-8'
 		self.setURL(url)
 		self.setData(data)
 
@@ -42,5 +43,12 @@ class APIRequest:
 		"""
 		Makes the request, validates and returns a response
 		"""
-		request = api.urlopen(self.getURL())
-		print self.getURL(), " =============> ", request.getcode()
+		req = urllib2.Request(self.getURL(), data=urllib.urlencode(self.data),
+				 headers=self.REQUEST_HEADER)
+		opener = urllib2.OpenerDirector()
+		opener.add_handler(urllib2.HTTPHandler())
+		opener.add_handler(urllib2.HTTPDefaultErrorHandler())
+		f = opener.open(req)
+		import json
+		print json.load(f)
+		
